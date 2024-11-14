@@ -1,7 +1,7 @@
 # F1 Stats Viewer
 
-[!NOTE]
-This is just a toy project created while experimenting with AI-assisted development (specifically Cursor).
+> [!NOTE]
+> This is just a toy project created while experimenting with AI-assisted development (specifically Cursor).
 
 A simple Flask application that displays Formula 1 statistics, including fastest laps and race winners. This is a toy project created while experimenting with AI-assisted development.
 
