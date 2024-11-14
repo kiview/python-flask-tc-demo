@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>F1 Fastest Laps</h1>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<form method="POST" class="mb-4">
+    <div class="form-group">
+        <label for="season">Select Season:</label>
+        <select name="season" id="season" class="form-control">
+            {% for season in seasons %}
+            <option value="{{ season }}" {% if season == selected_season %}selected{% endif %}>{{ season }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary mt-2">Get Fastest Laps</button>
+</form>
+
+{% if chart_data %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Fastest Laps per Driver</h5>
+                <canvas id="driversChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Fastest Laps per Team</h5>
+                <canvas id="teamsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if laps %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Race</th>
+            <th>Driver</th>
+            <th>Team</th>
+            <th>Lap Time</th>
+            <th>Lap Number</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lap in laps %}
+        <tr>
+            <td>{{ lap.race }}</td>
+            <td>{{ lap.driver }}</td>
+            <td>{{ lap.team }}</td>
+            <td>{{ lap.lap_time }}</td>
+            <td>{{ lap.lap_number }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if chart_data %}
+    // Function to create charts with different colors
+    function createChart(elementId, data, label, colors) {
+        const ctx = document.getElementById(elementId).getContext('2d');
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: label,
+                    data: data.data,
+                    backgroundColor: colors.background,
+                    borderColor: colors.border,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
+
+    // Create Drivers Chart
+    createChart(
+        'driversChart', 
+        {{ chart_data.drivers | tojson }}, 
+        'Number of Fastest Laps',
+        {
+            background: 'rgba(255, 99, 132, 0.5)',
+            border: 'rgba(255, 99, 132, 1)'
+        }
+    );
+
+    // Create Teams Chart
+    createChart(
+        'teamsChart', 
+        {{ chart_data.teams | tojson }}, 
+        'Number of Fastest Laps',
+        {
+            background: 'rgba(54, 162, 235, 0.5)',
+            border: 'rgba(54, 162, 235, 1)'
+        }
+    );
+    {% endif %}
+});
+</script>
+{% endblock %} 

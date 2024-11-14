@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">F1 Team Performance Over Seasons</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if chart_data %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Race Wins by Team per Season</h5>
+            <canvas id="teamPerformanceChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Team Filter</h5>
+            <div class="team-toggles">
+                {% for team in teams %}
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="checkbox" id="team-{{ loop.index }}" 
+                           value="{{ team }}" checked onchange="toggleTeam(this)">
+                    <label class="form-check-label team-label" for="team-{{ loop.index }}" 
+                           onmouseover="highlightTeam('{{ team }}')"
+                           onmouseout="resetHighlight()">
+                        {{ team }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.team-label {
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+.team-label:hover {
+    background-color: #f8f9fa;
+}
+
+.form-check-inline {
+    margin-right: 1rem;
+    margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if chart_data %}
+    const ctx = document.getElementById('teamPerformanceChart').getContext('2d');
+    const colors = [
+        'rgba(255, 99, 132, 1)',   // Red
+        'rgba(54, 162, 235, 1)',   // Blue
+        'rgba(255, 206, 86, 1)',   // Yellow
+        'rgba(75, 192, 192, 1)',   // Teal
+        'rgba(153, 102, 255, 1)',  // Purple
+        'rgba(255, 159, 64, 1)',   // Orange
+        'rgba(0, 128, 0, 1)',      // Green
+        'rgba(128, 0, 128, 1)',    // Purple
+        'rgba(128, 128, 0, 1)',    // Olive
+        'rgba(0, 128, 128, 1)',    // Teal
+    ];
+
+    const chartData = {{ chart_data | tojson }};
+    
+    // Assign colors to datasets and store them for later use
+    window.teamColors = {};
+    chartData.datasets.forEach((dataset, index) => {
+        const color = colors[index % colors.length];
+        dataset.borderColor = color;
+        dataset.backgroundColor = color.replace('1)', '0.2)');
+        dataset.fill = false;
+        dataset.tension = 0.1;
+        dataset.borderWidth = 2;
+        window.teamColors[dataset.label] = color;
+    });
+
+    window.teamChart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Race Wins'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Season'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    onHover: (event, legendItem) => {
+                        highlightTeam(legendItem.text);
+                    },
+                    onLeave: (event, legendItem) => {
+                        resetHighlight();
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+    {% endif %}
+});
+
+function toggleTeam(checkbox) {
+    const teamIndex = window.teamChart.data.datasets.findIndex(
+        dataset => dataset.label === checkbox.value
+    );
+    
+    if (teamIndex > -1) {
+        window.teamChart.data.datasets[teamIndex].hidden = !checkbox.checked;
+        window.teamChart.update();
+    }
+}
+
+function highlightTeam(teamName) {
+    window.teamChart.data.datasets.forEach(dataset => {
+        if (dataset.label === teamName) {
+            dataset.borderWidth = 4;
+            dataset.borderColor = window.teamColors[teamName];
+            dataset.backgroundColor = window.teamColors[teamName].replace('1)', '0.3)');
+        } else {
+            dataset.borderWidth = 1;
+            dataset.borderColor = dataset.borderColor.replace('1)', '0.2)');
+            dataset.backgroundColor = dataset.borderColor.replace('0.2)', '0.1)');
+        }
+    });
+    window.teamChart.update();
+}
+
+function resetHighlight() {
+    window.teamChart.data.datasets.forEach(dataset => {
+        dataset.borderWidth = 2;
+        dataset.borderColor = window.teamColors[dataset.label];
+        dataset.backgroundColor = window.teamColors[dataset.label].replace('1)', '0.2)');
+    });
+    window.teamChart.update();
+}
+</script>
+{% endblock %} 

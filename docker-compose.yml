@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: f1_db
+    network_mode: host
+    environment:
+      POSTGRES_DB: f1stats
+      POSTGRES_USER: f1stats
+      POSTGRES_PASSWORD: f1stats
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data: 
